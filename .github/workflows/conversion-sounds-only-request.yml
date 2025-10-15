@@ -1,5 +1,3 @@
-# .github/workflows/sounds-only-request.yml
-
 name: Sounds Only Conversion Request
 on:
   issues:
