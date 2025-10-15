@@ -22,7 +22,7 @@ jobs:
         run: |
           echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
           # This logic is proven to work in your original workflow.
-          # The key fix is targeting the correct ID: "java-pack-url"
+          # The key fix is targeting the correct ID from your form: "java-pack-url"
           def test_input($input; $default):
           if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";"")) end;
           {
