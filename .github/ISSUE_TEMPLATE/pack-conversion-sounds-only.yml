@@ -1,0 +1,32 @@
+name: 🎵 Sounds Only Conversion Request
+description: Request to convert only the sound files from a resource pack.
+title: "[Sounds Only] "
+labels: ["sounds-only"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please fill out the form below to begin the process of converting a resource pack's sound files.
+        The process will start automatically after you submit this issue.
+
+  - type: input
+    id: java-pack-url
+    attributes:
+      label: Java Pack Direct Download URL
+      description: Paste the direct download link to the Java resource pack .zip file.
+      placeholder: ex: https://example.com/my_resource_pack.zip
+    validations:
+      required: true
+
+  - type: dropdown
+    id: assets-version
+    attributes:
+      label: Default Assets Version
+      description: Select the Minecraft Java Edition version to use for the base assets, if needed.
+      options:
+        - "1.20.1"
+        - "1.19.4"
+        - "1.19.3"
+        - "1.18.2"
+    validations:
+      required: true
