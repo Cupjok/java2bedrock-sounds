@@ -29,19 +29,33 @@ jobs:
       - name: Issue Forms Body Parser
         id: parse-issue
         uses: zentered/issue-forms-body-parser@v1.5.1
-      # Step 2: Organize the parsed data and extract the URL
+# Step 2: Organize the parsed data and extract the URL safely
       - name: Organize Inputs
         id: organize-inputs
         run: |
-          # Use jq to read the JSON from the previous step and extract the value from the input with id "java-pack-url"
+          # Use jq to safely extract the pack URL from the issue's JSON data
           echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
-          def test_input($input; $default):
-          if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";"")) end;
-          {
-            "pack_url": test_input(.["java-pack-url"].text; "null")
-          }' > inputs.json
-          # Set the extracted URL as an output for this job
-          echo "PACK_URL=$(jq -r '.pack_url' inputs.json)" >> $GITHUB_OUTPUT
+          # Safely access the URL text. If it does not exist (null), fallback to an empty string.
+          ( .["java-pack-url"].text // "" ) as $url
+          # Check if the extracted URL is empty or a default non-response, and set to "null" if so.
+          | if ($url == "" or $url == "*No response*" or $url == "None") then
+              { "pack_url": "null" }
+            else
+              { "pack_url": $url }
+            end
+          ' > inputs.json
+
+          # Read the final URL from the temporary JSON file
+          FINAL_URL=$(jq -r '.pack_url' inputs.json)
+          
+          # Add a check to fail the job immediately if the URL is invalid
+          if [[ "$FINAL_URL" == "null" ]]; then
+            echo "::error::Failed to extract a valid pack URL from the issue body. The parser may have failed due to special characters in the link."
+            exit 1
+          fi
+          
+          # If the URL is valid, set it as a GitHub Actions output
+          echo "PACK_URL=${FINAL_URL}" >> $GITHUB_OUTPUT
 
   # Job 2: Convert the resource pack
   convert-sounds-pack:
