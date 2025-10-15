@@ -1,32 +1,49 @@
-name: 🎵 Sounds Only Conversion Request
-description: Request to convert only the sound files from a resource pack.
-title: "[Sounds Only] "
+name: Sounds Only Pack Conversion
+description: Request an automated conversion for sound files only
+title: "[Sounds Only]: "
 labels: ["sounds-only"]
 body:
   - type: markdown
     attributes:
       value: |
-        Please fill out the form below to begin the process of converting a resource pack's sound files.
-        The process will start automatically after you submit this issue.
+        Please be sure to include a directly downloadable link to your pack. The action will fail if the pack cannot be downloaded.
 
   - type: input
-    id: java-pack-url
+    id: java-pack-url # <-- ID นี้ตรงกับที่ workflow คาดหวัง
     attributes:
       label: Java Pack Direct Download URL
-      description: Paste the direct download link to the Java resource pack .zip file.
-      placeholder: ex: https://example.com/my_resource_pack.zip
+      description: Please provide a direct link to the Java Edition resource pack to be converted.
+      placeholder: e.g. https://github.com/Paradisu/ParadisuResourcePack/releases/latest/download/ParadisuResourcePack.zip
     validations:
       required: true
 
   - type: dropdown
-    id: assets-version
+    id: assets-version # <-- ID นี้ตรงกับที่ workflow คาดหวัง
     attributes:
       label: Default Assets Version
-      description: Select the Minecraft Java Edition version to use for the base assets, if needed.
+      description: Select the default assets version to use for the converted pack.
       options:
-        - "1.20.1"
-        - "1.19.4"
-        - "1.19.3"
-        - "1.18.2"
+        - 1.13.2
+        - 1.14.4
+        - 1.15.2
+        - 1.16.5
+        - 1.17.1
+        - 1.18.2
+        - 1.19.2
+        - 1.19.3
+        - 1.19.4
+        - '1.20'
+        - 1.20.1
     validations:
       required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: |
+        By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/Cupjok/java2bedrock-sounds/blob/main/CODE_OF_CONDUCT.md)
+        You further agree that you either own or have permission to use any content you have linked to within this form.
+      options:
+        - label: I agree to follow this project's Code of Conduct. I have permission to use all assets I have linked to within this form.
+          required: true
