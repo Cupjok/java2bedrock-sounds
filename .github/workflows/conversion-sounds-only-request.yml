@@ -38,7 +38,7 @@ jobs:
           def test_input($input; $default):
           if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";"")) end;
           {
-            "pack_url": test_input(.["java-pack-url"].text; "null")[1:-1]
+            "pack_url": test_input(.["java-pack-url"].text; "null")
           }' > inputs.json
           # Set the extracted URL as an output for this job
           echo "PACK_URL=$(jq -r '.pack_url' inputs.json)" >> $GITHUB_OUTPUT
