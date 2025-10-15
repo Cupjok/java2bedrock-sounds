@@ -51,8 +51,8 @@ jobs:
           echo "Downloading pack from: ${PACK_URL}"
           curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
           
-          # Running script with a hardcoded default version (1.20.1)
-          ./converter_sounds_only.sh input_pack.zip -v "1.20.1"
+          # Running script without any version argument
+          ./converter_sounds_only.sh input_pack.zip
 
       - name: Upload converted pack
         uses: actions/upload-artifact@v4
