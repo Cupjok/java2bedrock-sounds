@@ -1,4 +1,26 @@
-## Usage
+## Usage (Github Actions)
+
+Select one of the two conversion options based on your needs.
+
+---
+
+#### 1. Full Conversion (2D/3D Items & Sounds)
+This option will perform a comprehensive conversion of your resource pack, including both item models and all sound files.
+
+* **Output File:** `geyser_resources.mcpack`
+* **Proceed to:** [Full Conversion](https://github.com/Cupjok/java2bedrock-sounds/issues/new?template=pack-conversion.yml)
+
+---
+
+#### 2. Sounds-Only Conversion
+Choose this option if you only wish to convert the sound files from your resource pack.
+
+* **Output File:** `geyser_sound.mcpack`
+* **Proceed to:** [Sounds-Only Conversion](https://github.com/Cupjok/java2bedrock-sounds/issues/new?template=pack-conversion-sounds-only.yml)
+
+---
+
+## Usage (Local)
 
 ### To convert 2D and 3D items, including sounds (converter.sh)
 
