@@ -1,0 +1,117 @@
+name: Sounds Only Conversion Request
+on:
+  issues:
+    types:
+      - labeled
+
+jobs:
+  get-sounds-pack-info:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'sounds-only'
+    permissions: 
+      issues: read
+    timeout-minutes: 2
+    outputs:
+      pack_url: ${{ steps.organize-inputs.outputs.PACK_URL }}
+      assets_version: ${{ steps.organize-inputs.outputs.ASSETS_VERSION }}
+    steps:
+      - name: Issue Forms Body Parser
+        id: parse-issue
+        uses: zentered/issue-forms-body-parser@v1.5.1
+      - name: Organize Inputs
+        id: organize-inputs
+        run: |
+          echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
+          {
+            "pack_url": .["java-pack-url"],
+            "assets_version": .["assets-version"]
+          }' > inputs.json
+          echo "PACK_URL=$(jq -r '.pack_url' inputs.json)" >> $GITHUB_OUTPUT
+          echo "ASSETS_VERSION=$(jq -r '.assets_version' inputs.json)" >> $GITHUB_OUTPUT
+
+  convert-sounds-pack:
+    runs-on: ubuntu-latest
+    needs: get-sounds-pack-info
+    permissions: 
+      contents: read
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --fix-missing moreutils zip ffmpeg
+      - name: Convert Sounds Pack
+        id: convert-pack
+        env: 
+          PACK_URL: ${{ needs.get-sounds-pack-info.outputs.pack_url }}
+          ASSETS_VERSION: ${{ needs.get-sounds-pack-info.outputs.assets_version }}
+        run: |
+          mkdir -p staging
+          cp converter_sounds_only.sh staging/
+          cd staging
+          chmod +x converter_sounds_only.sh
+          
+          echo "Downloading pack from: ${PACK_URL}"
+          COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
+          
+          ./converter_sounds_only.sh input_pack.zip -v ${ASSETS_VERSION}
+          
+      - name: Upload converted pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sound-Pack-Files
+          path: |
+            staging/target/packaged/sounds_only.mcpack
+            staging/logs.zip
+
+  post-sounds-result:
+    runs-on: ubuntu-latest
+    needs: convert-sounds-pack
+    if: success()
+    timeout-minutes: 2
+    permissions: 
+      issues: write
+    steps:
+      - name: Post Result
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ## :musical_note: Sound conversion complete! :musical_note:
+            - Download your pack files from the [action run][1] page. :arrow_double_down:
+            
+            [1]: https://github.com/Cupjok/java2bedrock-sounds/actions/runs/${{ github.run_id }}
+          reactions: 'hooray'
+      - name: Close Issue
+        uses: peter-evans/close-issue@v2
+        with:
+          issue-number: ${{ github.event.issue.number }}
+
+  conversion-sounds-failed:
+    runs-on: ubuntu-latest
+    needs: [get-sounds-pack-info, convert-sounds-pack]
+    if: failure() || cancelled()
+    timeout-minutes: 2
+    permissions: 
+      issues: write
+    steps:
+      - name: Post Failure Result
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ## :warning: Sound conversion failed :warning:
+            - Please check the logs from the [action run][1] page for errors.
+            - Status by job:
+              - Get Pack Info: *${{ needs.get-sounds-pack-info.result }}*
+              - Convert Sounds Pack: *${{ needs.convert-sounds-pack.result }}*
+
+            [1]: https://github.com/Cupjok/java2bedrock-sounds/actions/runs/${{ github.run_id }}
+          reactions: 'confused'
+      - name: Close Issue
+        uses: peter-evans/close-issue@v2
+        with:
+          issue-number: ${{ github.event.issue.number }}
