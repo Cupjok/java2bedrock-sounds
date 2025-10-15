@@ -9,31 +9,11 @@ body:
         Please be sure to include a directly downloadable link to your pack. The action will fail if the pack cannot be downloaded.
 
   - type: input
-    id: java-pack-url # <-- ID นี้ตรงกับที่ workflow คาดหวัง
+    id: java-pack-url
     attributes:
       label: Java Pack Direct Download URL
       description: Please provide a direct link to the Java Edition resource pack to be converted.
-      placeholder: e.g. https://github.com/Paradisu/ParadisuResourcePack/releases/latest/download/ParadisuResourcePack.zip
-    validations:
-      required: true
-
-  - type: dropdown
-    id: assets-version # <-- ID นี้ตรงกับที่ workflow คาดหวัง
-    attributes:
-      label: Default Assets Version
-      description: Select the default assets version to use for the converted pack.
-      options:
-        - 1.13.2
-        - 1.14.4
-        - 1.15.2
-        - 1.16.5
-        - 1.17.1
-        - 1.18.2
-        - 1.19.2
-        - 1.19.3
-        - 1.19.4
-        - '1.20'
-        - 1.20.1
+      placeholder: e.g. https://example.com/my_resource_pack.zip
     validations:
       required: true
 
@@ -45,5 +25,5 @@ body:
         By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/Cupjok/java2bedrock-sounds/blob/main/CODE_OF_CONDUCT.md)
         You further agree that you either own or have permission to use any content you have linked to within this form.
       options:
-        - label: I agree to follow this project's Code of Conduct. I have permission to use all assets I have linked to within this form.
+        - label: I agree to follow this project's Code of Conduct and I have permission to use all assets I have linked to within this form.
           required: true
