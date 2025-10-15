@@ -20,13 +20,11 @@ jobs:
       - name: Organize Inputs
         id: organize-inputs
         run: |
-          # Using the EXACT proven logic from your original working workflow
-          # The only change is targeting the correct ID: "java-pack-url"
+          # Using the EXACT proven logic from your original working workflow for the required URL.
+          # The only change is targeting the correct ID from your form: "java-pack-url"
           echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
-          def test_input($input; $default):
-          if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";"")) end;
           {
-            "pack_url": test_input(.["java-pack-url"].text; "null")[1:-1]
+            "pack_url": .["java-pack-url"].text[1:-1]
           }' > inputs.json
           echo "PACK_URL=$(jq -r '.pack_url' inputs.json)" >> $GITHUB_OUTPUT
 
@@ -40,6 +38,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install dependencies
         run: |
+          # Install only the dependencies required by converter_sounds_only.sh
           sudo apt-get update
           sudo apt-get install -y --fix-missing moreutils zip ffmpeg jq uuid-runtime
       - name: Convert Sounds Pack
@@ -47,7 +46,7 @@ jobs:
         env:
           PACK_URL: ${{ needs.get-sounds-pack-info.outputs.pack_url }}
         run: |
-          # This block now perfectly mirrors your working example's structure
+          # This block now correctly mirrors your working example's structure
           mkdir -p staging
           cp converter_sounds_only.sh staging/
           cd staging
@@ -64,6 +63,7 @@ jobs:
         with:
           name: Sound-Pack-Files
           path: |
+            # Correctly upload the files that are actually created by the script
             staging/target/packaged/geyser_sound.mcpack
             staging/target/packaged/geyser_addon.mcaddon
             staging/target/debug.log
