@@ -1,117 +1,150 @@
+# Name of the workflow to be displayed on the GitHub Actions page
 name: Sounds Only Conversion Request
+
+# Defines the trigger for this workflow
 on:
   issues:
+    # Runs when an issue is "labeled"
     types:
       - labeled
 
+# Defines the jobs to be run in the workflow
 jobs:
+  # Job 1: Get the pack URL from the issue
   get-sounds-pack-info:
+    # Runs on the latest version of Ubuntu
     runs-on: ubuntu-latest
+    # Additional condition: Only run if the added label is 'sounds-only'
     if: github.event.label.name == 'sounds-only'
+    # Define the necessary permissions for this job
     permissions:
-      issues: read
+      issues: read # Requires permission to read issue data
+    # Set a maximum runtime for this job
     timeout-minutes: 2
+    # Define outputs to be passed to other jobs
     outputs:
       pack_url: ${{ steps.organize-inputs.outputs.PACK_URL }}
     steps:
+      # Step 1: Use a pre-built action to parse the issue form body
       - name: Issue Forms Body Parser
         id: parse-issue
         uses: zentered/issue-forms-body-parser@v1.5.1
+      # Step 2: Organize the parsed data and extract the URL
       - name: Organize Inputs
         id: organize-inputs
         run: |
-          # Using the EXACT proven logic from your original working workflow for the required URL.
-          # The only change is targeting the correct ID from your form: "java-pack-url"
+          # Use jq to read the JSON from the previous step and extract the value from the input with id "java-pack-url"
           echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
+          def test_input($input; $default):
+          if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";"")) end;
           {
-            "pack_url": .["java-pack-url"].text[1:-1]
+            "pack_url": test_input(.["java-pack-url"].text; "null")[1:-1]
           }' > inputs.json
+          # Set the extracted URL as an output for this job
           echo "PACK_URL=$(jq -r '.pack_url' inputs.json)" >> $GITHUB_OUTPUT
 
+  # Job 2: Convert the resource pack
   convert-sounds-pack:
+    # Runs on the latest version of Ubuntu
     runs-on: ubuntu-latest
+    # Specifies that this job must wait for 'get-sounds-pack-info' to complete
     needs: get-sounds-pack-info
     permissions:
-      contents: read
+      contents: read # Requires permission to read files in the repository (for checkout)
     timeout-minutes: 60
     steps:
+      # Step 1: Check out the code from the repository to use the converter_sounds_only.sh script
       - uses: actions/checkout@v3
+      # Step 2: Install the necessary dependencies for the script
       - name: Install dependencies
         run: |
-          # Install only the dependencies required by converter_sounds_only.sh
           sudo apt-get update
           sudo apt-get install -y --fix-missing moreutils zip ffmpeg jq uuid-runtime
+      # Step 3: Run the conversion script
       - name: Convert Sounds Pack
         id: convert-pack
+        # Get the pack URL from the output of the previous job
         env:
           PACK_URL: ${{ needs.get-sounds-pack-info.outputs.pack_url }}
         run: |
-          # This block now correctly mirrors your working example's structure
+          # Create a temporary working directory
           mkdir -p staging
           cp converter_sounds_only.sh staging/
           cd staging
           chmod +x converter_sounds_only.sh
           
+          # Download the resource pack from the URL
           echo "Downloading pack from: ${PACK_URL}"
-          COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
+          curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
           
-          # Run the correct script with only its required argument
+          # Run the conversion script, passing the downloaded file name as an argument
           ./converter_sounds_only.sh input_pack.zip
 
+      # Step 4: Upload the converted files as artifacts
       - name: Upload converted pack
         uses: actions/upload-artifact@v4
         with:
           name: Sound-Pack-Files
+          # Specify the paths of the files to upload
           path: |
-            # Correctly upload the files that are actually created by the script
             staging/target/packaged/geyser_sound.mcpack
             staging/target/packaged/geyser_addon.mcaddon
             staging/target/debug.log
 
+  # Job 3: Post the result (on success)
   post-sounds-result:
     runs-on: ubuntu-latest
+    # Must wait for the 'convert-sounds-pack' job to complete
     needs: convert-sounds-pack
+    # Only run if the previous job was "successful"
     if: success()
     timeout-minutes: 2
     permissions:
-      issues: write
+      issues: write # Requires permission to write comments and close issues
     steps:
+      # Step 1: Post a comment with the result on the issue
       - name: Post Result
         uses: peter-evans/create-or-update-comment@v2
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
             ## :musical_note: Sound conversion complete! :musical_note:
-            - Download your pack files from the [action run][1] page.
+            - Download your pack files (`geyser_sound.mcpack`, `geyser_addon.mcaddon`) from the [action run][1] page. :arrow_double_down:
             
-            [1]: https://github.com/Cupjok/java2bedrock-sounds/actions/runs/${{ github.run_id }}
+            [1]: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           reactions: 'hooray'
+      # Step 2: Close the issue after posting the result
       - name: Close Issue
         uses: peter-evans/close-issue@v2
         with:
           issue-number: ${{ github.event.issue.number }}
 
+  # Job 4: Post the result (on failure)
   conversion-sounds-failed:
     runs-on: ubuntu-latest
+    # Must wait for both 'get-sounds-pack-info' and 'convert-sounds-pack' to complete
     needs: [get-sounds-pack-info, convert-sounds-pack]
+    # Only run if any of the needed jobs have "failed" or were "cancelled"
     if: failure() || cancelled()
     timeout-minutes: 2
     permissions:
       issues: write
     steps:
+      # Step 1: Post a comment with the failure message
       - name: Post Failure Result
         uses: peter-evans/create-or-update-comment@v2
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
             ## :warning: Sound conversion failed :warning:
-            - Please check the logs from the [action run][1] page for errors.
+            - Please check the logs and artifacts (`debug.log`) from the [action run][1] page for errors.
             - Status by job:
               - Get Pack Info: *${{ needs.get-sounds-pack-info.result }}*
               - Convert Sounds Pack: *${{ needs.convert-sounds-pack.result }}*
 
-            [1]: https://github.com/Cupjok/java2bedrock-sounds/actions/runs/${{ github.run_id }}
+            [1]: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           reactions: 'confused'
+      # Step 2: Close the issue
       - name: Close Issue
         uses: peter-evans/close-issue@v2
         with:
