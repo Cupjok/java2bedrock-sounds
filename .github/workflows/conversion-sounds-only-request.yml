@@ -1,3 +1,5 @@
+# .github/workflows/sounds-only-request.yml
+
 name: Sounds Only Conversion Request
 on:
   issues:
@@ -21,8 +23,10 @@ jobs:
         id: organize-inputs
         run: |
           echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
+          def test_input($input; $default):
+          if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";"")) end;
           {
-            "pack_url": .["java-pack-url"].text[1:-1]
+            "pack_url": test_input(.["java-pack-url"].text; "null")[1:-1]
           }' > inputs.json
           echo "PACK_URL=$(jq -r '.pack_url' inputs.json)" >> $GITHUB_OUTPUT
 
