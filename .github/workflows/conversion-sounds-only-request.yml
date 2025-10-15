@@ -20,9 +20,9 @@ jobs:
       - name: Organize Inputs
         id: organize-inputs
         run: |
+          # Using the EXACT proven logic from your original working workflow
+          # The only change is targeting the correct ID: "java-pack-url"
           echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
-          # This logic is proven to work in your original workflow.
-          # The key fix is targeting the correct ID from your form: "java-pack-url"
           def test_input($input; $default):
           if ($input == "*No response*" or $input == "None") then $default else ($input | tostring | gsub("\\\\";"")) end;
           {
@@ -40,7 +40,6 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install dependencies
         run: |
-          # Install only the dependencies required by converter_sounds_only.sh
           sudo apt-get update
           sudo apt-get install -y --fix-missing moreutils zip ffmpeg jq uuid-runtime
       - name: Convert Sounds Pack
@@ -48,15 +47,16 @@ jobs:
         env:
           PACK_URL: ${{ needs.get-sounds-pack-info.outputs.pack_url }}
         run: |
+          # This block now perfectly mirrors your working example's structure
           mkdir -p staging
           cp converter_sounds_only.sh staging/
           cd staging
           chmod +x converter_sounds_only.sh
           
           echo "Downloading pack from: ${PACK_URL}"
-          curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
+          COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
           
-          # Run the script with only the required input file
+          # Run the correct script with only its required argument
           ./converter_sounds_only.sh input_pack.zip
 
       - name: Upload converted pack
@@ -64,7 +64,6 @@ jobs:
         with:
           name: Sound-Pack-Files
           path: |
-            # Correctly upload the files that are actually created by the script
             staging/target/packaged/geyser_sound.mcpack
             staging/target/packaged/geyser_addon.mcaddon
             staging/target/debug.log
@@ -83,7 +82,7 @@ jobs:
           issue-number: ${{ github.event.issue.number }}
           body: |
             ## :musical_note: Sound conversion complete! :musical_note:
-            - Download your pack files (`geyser_sound.mcpack`, `geyser_addon.mcaddon`) from the [action run][1] page. :arrow_double_down:
+            - Download your pack files from the [action run][1] page.
             
             [1]: https://github.com/Cupjok/java2bedrock-sounds/actions/runs/${{ github.run_id }}
           reactions: 'hooray'
@@ -106,7 +105,7 @@ jobs:
           issue-number: ${{ github.event.issue.number }}
           body: |
             ## :warning: Sound conversion failed :warning:
-            - Please check the logs and artifacts (`debug.log`) from the [action run][1] page for errors.
+            - Please check the logs from the [action run][1] page for errors.
             - Status by job:
               - Get Pack Info: *${{ needs.get-sounds-pack-info.result }}*
               - Convert Sounds Pack: *${{ needs.convert-sounds-pack.result }}*
