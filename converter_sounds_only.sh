@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 : ${1?'Please specify the input Java Resource Pack file (e.g., ./converter_sound.sh MyResourcePack.zip)'}
 
-# --- [ V37 DEBUG SETUP ] ---
+# --- [ V38 DEBUG SETUP (Vanilla Fix) ] ---
 DEBUG_MODE=true
 DEBUG_LOG_FILE="./target/debug.log"
 
@@ -10,7 +10,7 @@ mkdir -p target
 # 2. Redirect all shell error output (including set -x trace) to the log file permanently.
 exec 2>> "$DEBUG_LOG_FILE" 
 # 3. Write start message and enable trace (both now go ONLY to the log file).
-printf "[INFO] DEBUG MODE START (V37). Final Logic: Correct Key Namespace & Full Path Structure (Added RP Root 'sounds/' prefix). Full trace redirected to %s\n" "$DEBUG_LOG_FILE"
+printf "[INFO] DEBUG MODE START (V38 - Vanilla Sound Fix). Final Logic: Correct Key Namespace & Full Path Structure. Full trace redirected to %s\n" "$DEBUG_LOG_FILE"
 set -x 
 # ---------------------------
 
@@ -151,8 +151,8 @@ export -f convert_sound_file
 # -------------------------------------------
 
 
-# --- [ SOUND CONVERSION AND DEFINITION GENERATION (V37: Path Prefix Fix Applied) ] ---
-status_message process "Processing Java sound files (V37: Key Namespace Fix & RP Root 'sounds/' Path Prefix Fix Applied)."
+# --- [ SOUND CONVERSION AND DEFINITION GENERATION (V38: Vanilla Sound Fix Applied) ] ---
+status_message process "Processing Java sound files (V38: Now includes 'minecraft' namespace)."
 
 JAVA_ASSETS_ROOT="./assets" 
 RP_SOUNDS_DIR="./target/rp/sounds"
@@ -169,10 +169,9 @@ find "$JAVA_ASSETS_ROOT" -type f -name "sounds.json" -print0 | while IFS= read -
     # Determine the namespace from the folder structure (e.g., rpg_pet) - THIS IS THE BASE FOR THE KEY NAMESPACE
     java_folder_namespace=$(echo "$json_file" | sed -E 's/^\.\/assets\/([a-z0-9_-]+)\/sounds\.json$/\1/g')
     
-    if [ "$java_folder_namespace" = "minecraft" ]; then
-        status_message info "Skipping vanilla sounds.json: $json_file"
-        continue
-    fi
+    # --- [VANILLA FIX] ---
+    # The 'if' block that skipped "minecraft" namespace has been REMOVED.
+    # --- [END VANILLA FIX] ---
     
     if [ -z "$java_folder_namespace" ]; then
         status_message info "Warning: Could not determine namespace for sounds.json file at $json_file. Skipping."
@@ -277,7 +276,17 @@ find "$JAVA_ASSETS_ROOT" -type f -name "sounds.json" -print0 | while IFS= read -
             # --- V37: KEY ID PROCESSING (Verbatim Key) ---
             java_key_id_cleaned="$java_sound_key" 
             
-            bedrock_sound_event_key="${bedrock_namespace_for_key}:${java_key_id_cleaned}"
+            # --- [VANILLA FIX] ---
+            # Handle 'minecraft' namespace for Bedrock key definitions.
+            # Vanilla sounds do not get a namespace prefix (e.g., "mob.creeper.say")
+            # Custom sounds DO get a namespace prefix (e.g., "rpg_pet_sounds:custom.key")
+            bedrock_sound_event_key=""
+            if [[ "$bedrock_namespace_for_key" == "minecraft" ]]; then
+                bedrock_sound_event_key="$java_key_id_cleaned"
+            else
+                bedrock_sound_event_key="${bedrock_namespace_for_key}:${java_key_id_cleaned}"
+            fi
+            # --- [END VANILLA FIX] ---
 
             # --- FILE CONVERSION AND MAPPING (FIXED PATH) ---
             
