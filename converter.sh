@@ -206,8 +206,8 @@ export -f convert_sound_file
 # -------------------------------------------
 
 
-# --- [ SOUND CONVERSION AND DEFINITION GENERATION (V37: Path Prefix Fix Applied) ] ---
-status_message process "Processing Java sound files (V37: Key Namespace Fix & RP Root 'sounds/' Path Prefix Fix Applied)."
+# --- [ SOUND CONVERSION AND DEFINITION GENERATION (V38: Vanilla Sound Fix Applied) ] ---
+status_message process "Processing Java sound files (V38: Now includes 'minecraft' namespace)."
 
 JAVA_ASSETS_ROOT="./assets" 
 RP_SOUNDS_DIR="./target/rp/sounds"
@@ -224,10 +224,9 @@ find "$JAVA_ASSETS_ROOT" -type f -name "sounds.json" -print0 | while IFS= read -
     # Determine the namespace from the folder structure (e.g., rpg_pet) - THIS IS THE BASE FOR THE KEY NAMESPACE
     java_folder_namespace=$(echo "$json_file" | sed -E 's/^\.\/assets\/([a-z0-9_-]+)\/sounds\.json$/\1/g')
     
-    if [ "$java_folder_namespace" = "minecraft" ]; then
-        status_message info "Skipping vanilla sounds.json: $json_file"
-        continue
-    fi
+    # --- [VANILLA FIX] ---
+    # The 'if' block that skipped "minecraft" namespace has been REMOVED.
+    # --- [END VANILLA FIX] ---
     
     if [ -z "$java_folder_namespace" ]; then
         status_message info "Warning: Could not determine namespace for sounds.json file at $json_file. Skipping."
@@ -256,7 +255,7 @@ find "$JAVA_ASSETS_ROOT" -type f -name "sounds.json" -print0 | while IFS= read -
                 sound_file_path_relative_to_sounds=$(echo "$sound_path_string" | cut -d: -f2)
             fi
             
-            # Remove redundant namespace prefix if present
+            # Remove redundant namespace prefix if present (e.g., "archer/samus/...")
             if [[ "$sound_file_path_relative_to_sounds" == "$path_namespace/"* ]] && [ "$path_namespace" != "minecraft" ]; then
                 sound_file_path_relative_to_sounds="${sound_file_path_relative_to_sounds#$path_namespace/}"
             fi
@@ -332,7 +331,17 @@ find "$JAVA_ASSETS_ROOT" -type f -name "sounds.json" -print0 | while IFS= read -
             # --- V37: KEY ID PROCESSING (Verbatim Key) ---
             java_key_id_cleaned="$java_sound_key" 
             
-            bedrock_sound_event_key="${bedrock_namespace_for_key}:${java_key_id_cleaned}"
+            # --- [VANILLA FIX] ---
+            # Handle 'minecraft' namespace for Bedrock key definitions.
+            # Vanilla sounds do not get a namespace prefix (e.g., "mob.creeper.say")
+            # Custom sounds DO get a namespace prefix (e.g., "rpg_pet_sounds:custom.key")
+            bedrock_sound_event_key=""
+            if [[ "$bedrock_namespace_for_key" == "minecraft" ]]; then
+                bedrock_sound_event_key="$java_key_id_cleaned"
+            else
+                bedrock_sound_event_key="${bedrock_namespace_for_key}:${java_key_id_cleaned}"
+            fi
+            # --- [END VANILLA FIX] ---
 
             # --- FILE CONVERSION AND MAPPING (FIXED PATH) ---
             
@@ -384,6 +393,8 @@ if [ -s "$TEMP_JSON_FILE" ]; then
 else
     status_message error "CRITICAL: No sound files successfully processed. Check file names/paths in the input pack structure. See debug.log for details."
 fi
+
+# ----------------------------------------------------
 
 # ----------------------------------------------------
 # ----------- [ END SOUND CONVERSION ] ---------------
